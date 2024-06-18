@@ -221,11 +221,11 @@
       class="container mx-auto w-[210mm] border px-[8.45mm] py-[13.5mm] print:w-full print:max-w-full print:border-0"
     >
       <!-- Display QR Code Labels -->
-      <ol class="grid grid-cols-7 gap-x-[2.55mm]">
+      <ol class="grid grid-cols-10 gap-x-[2.55mm]">
         <template x-for="label in labels">
-          <li class="h-[10mm] w-[25.4mm]">
+          <li class="h-[10mm] w-[17.8mm]">
             <div
-              class="flex h-[9mm] w-[24.4mm] items-center border-[0.5mm] odd:border-blue-500 even:border-red-300"
+              class="flex h-[9mm] w-[16.8mm] items-center border-[0.5mm] odd:border-blue-500 even:border-red-300"
               :class="{'even:border-transparent odd:border-transparent': !borderToggle}"
             >
               <img
