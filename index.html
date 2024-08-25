@@ -103,8 +103,8 @@
                 the <strong>next batch</strong> of labels should
                 <strong
                   >start with
-                  <span x-text="parseInt(startNumber, 10) + 189"
-                    >190</span
+                  <span x-text="parseInt(startNumber, 10) + 270"
+                    >271</span
                   ></strong
                 >.
               </p>
@@ -239,11 +239,11 @@
               <div
                 class="flex-grow"
                 :class="{
-                'text-[3.9mm]': label.text.length <= 6,
-                'text-[3.2mm]': label.text.length == 7,
-                'text-[2.7mm]': label.text.length == 8,
-                'text-[2.4mm]': label.text.length == 9,
-                'text-[2.1mm]': label.text.length >= 10,
+                'text-[2.9mm]': label.text.length <= 4,
+                'text-[2.2mm]': label.text.length == 5,
+                'text-[1.7mm]': label.text.length == 6,
+                'text-[1.4mm]': label.text.length == 7,
+                'text-[1.1mm]': label.text.length >= 8,
               }"
                 x-text="label.text"
               ></div>
@@ -287,18 +287,27 @@
 
           generateLabels() {
             this.labels = [];
-            let totalLabels = 7 * 27; // 7 columns x 27 rows
+            let totalLabels = 10 * 27; // 7 columns x 27 rows
             let startNumberInt = parseInt(this.startNumber, 10); // Ensure startNumber is an integer
             let leadingZerosInt = parseInt(this.leadingZeros, 10); // Ensure leadingZeros is an integer
             for (let i = 0; i < totalLabels; i++) {
-              let number = startNumberInt + i;
-              let paddedNumber = number
+              const number = startNumberInt + i;
+              const paddedNumber = number
                 .toString()
                 .padStart(leadingZerosInt + 1, "0");
-              let text = this.printPrefix ? this.prefix + paddedNumber : paddedNumber;
-              let qrCode = this.prefix + paddedNumber;
+              const tempText = this.printPrefix ? this.prefix + paddedNumber : paddedNumber;
+              const text = function () {
+                  if (tempText.length > 4) {
+                  const divideOn = Math.ceil(tempText.length/2)
+                  return `${tempText.substring(0,divideOn)}\n${tempText.substring(divideOn)}`;
+                } else {
+                  return tempText
+                }
+              }
+
+              const qrCode = this.prefix + paddedNumber;
               // See https://goqr.me/api/doc/create-qr-code/
-              let qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
+              const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
                 qrCode
               )}`;
 
