@@ -13,6 +13,8 @@
       src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
       defer
     ></script>
+    <!-- bwip-js for DataMatrix generation in the browser -->
+    <script src="https://unpkg.com/bwip-js/dist/bwip-js-min.js"></script>
     <style>
       @media print {
         /* See https://caniuse.com/css-paged-media */
@@ -24,47 +26,32 @@
       }
     </style>
   </head>
-  <body class="print:p-0" x-data="qrCodeApp()">
+  <body class="print:p-0" x-data="qrCodeApp()" x-init="init()">
     <div class="container mx-auto print:hidden">
       <h1 class="mb-4 text-xl font-bold print:hidden">
-        QR Code Label Generator for
+        Data Matrix Label Generator for
         <abbr title="Archive Serial Number">ASN</abbr> in Paperless-ngx
       </h1>
-      <div
-        class="prose prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-700 mb-4 print:hidden"
-      >
+      <div class="prose prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-700 mb-4 print:hidden">
         <p>
-          This tool generates QR code labels for the
-          <a
-            href="https://docs.paperless-ngx.com/advanced_usage/#archive-serial-number-assignment"
-            >Archive Serial Number (ASN)</a
-          >
-          feature in
-          <a href="https://docs.paperless-ngx.com/">Paperless-ngx</a>.
+          This tool generates Data Matrix labels for the
+          <a href="https://docs.paperless-ngx.com/advanced_usage/#archive-serial-number-assignment">Archive Serial Number (ASN)</a>
+          feature in <a href="https://docs.paperless-ngx.com/">Paperless-ngx</a>.
         </p>
 
         <p>
           The <abbr title="Archive Serial Number">ASN</abbr> feature allows you
           to assign a unique serial number to each document in your archive.
           This is useful if you want to refer to a document in a paperless
-          workflow. For example, you can print the
-          <abbr title="Archive Serial Number">ASN</abbr>
-          on a document and then use it to search for the document in
-          Paperless-ngx.
+          workflow. For example, you can print the ASN label and then use it to search for the document in Paperless-ngx.
         </p>
 
         <p>
-          This tool generates QR code labels for the
-          <abbr title="Archive Serial Number">ASN</abbr> feature. You can
-          generate labels for up to 189 documents at once. The labels are
-          formatted to <strong>fit on Avery L4731REV-25 labels</strong>.
+          This tool generates Data Matrix labels. The labels produced are sized to the exact label size (25mm x 13mm) and pages are prepared for direct use with a label printer.
         </p>
 
         <p>
-          To use this tool, enter the start number, prefix, and number of
-          leading zeros. Then click the "Regenerate Labels" button. The labels
-          will be generated and displayed below. You can then print the labels
-          by clicking the "Print Labels" button.
+          To use this tool, enter the three-digit namespace and three-digit document start number. Choose the namespace background (black or white). The Data Matrix payload will always include the prefix "ASN" but it is not printed as text on the label. Click "Regenerate Labels" then "Print Labels".
         </p>
 
         <p>
@@ -78,106 +65,57 @@
       </div>
       <form @submit.prevent="generateLabels()" class="mb-8 print:hidden">
         <!-- User Input Fields -->
-        <div class="mb-5 grid grid-cols-1 gap-5 md:grid-cols-2">
+        <div class="mb-5 grid grid-cols-1 gap-5 md:grid-cols-3">
           <div>
-            <label
-              for="startNumber"
-              class="mb-2 block text-sm font-medium text-gray-900"
-              >Start Number</label
-            >
-            <input
-              type="number"
-              id="startNumber"
-              x-model="startNumber"
-              required
-              min="1"
-              step="1"
-              value="1"
-              class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500"
-            />
-            <div class="mt-1">
-              <p
-                class="prose prose-sm prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-700 max-w-none"
-              >
-                The number of labels generated will be 7 x 27 = 189. This means
-                the <strong>next batch</strong> of labels should
-                <strong
-                  >start with
-                  <span x-text="parseInt(startNumber, 10) + 270"
-                    >271</span
-                  ></strong
-                >.
-              </p>
-            </div>
-          </div>
-          <div>
-            <label
-              for="prefix"
-              class="mb-2 block text-sm font-medium text-gray-900"
-              >Prefix</label
-            >
+            <label for="namespace" class="mb-2 block text-sm font-medium text-gray-900">Namespace (3 digits)</label>
             <input
               type="text"
-              id="prefix"
-              x-model="prefix"
+              id="namespace"
+              x-model="namespace"
               required
-              value="ASN"
+              maxlength="3"
+              minlength="3"
+              pattern="\\d{3}"
+              value="001"
               class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500"
             />
-            <div class="mt-1">
-              <p
-                class="prose prose-sm prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-700 max-w-none"
-              >
-                If you change this, <strong>update the prefix</strong> in
-                Paperless-ngx accordingly via
-                <a
-                  href="https://docs.paperless-ngx.com/configuration/#PAPERLESS_CONSUMER_ASN_BARCODE_PREFIX"
-                  ><code>PAPERLESS_CONSUMER_ASN_BARCODE_PREFIX</code></a
-                >.
-              </p>
-            </div>
           </div>
           <div>
-            <label
-              for="leadingZeros"
-              class="mb-2 block text-sm font-medium text-gray-900"
-              >Number of Leading Zeros</label
-            >
+            <label for="docStart" class="mb-2 block text-sm font-medium text-gray-900">Document Start (3 digits)</label>
+            <input
+              type="text"
+              id="docStart"
+              x-model="docStart"
+              required
+              maxlength="3"
+              minlength="3"
+              pattern="\\d{3}"
+              value="001"
+              class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label for="count" class="mb-2 block text-sm font-medium text-gray-900">Anzahl Etiketten</label>
             <input
               type="number"
-              id="leadingZeros"
-              x-model="leadingZeros"
+              id="count"
+              x-model="count"
               required
-              value="5"
-              min="0"
+              min="1"
+              max="1000"
+              value="10"
               class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500"
             />
           </div>
-          <div>
-            <div class="flex items-start">
-              <div class="flex h-5 items-center">
-                <input
-                  type="checkbox"
-                  id="borderToggle"
-                  x-model="borderToggle"
-                  class="focus:ring-3 h-4 w-4 rounded border border-gray-300 bg-gray-50 focus:ring-blue-300"
-                />
-              </div>
-              <label
-                for="borderToggle"
-                class="ms-2 text-sm font-medium text-gray-900"
-                >Show Border</label
-              >
+          <div class="md:col-span-1">
+            <label class="mb-2 block text-sm font-medium text-gray-900">Namespace Hintergrund</label>
+            <div class="flex items-center gap-4">
+              <label class="inline-flex items-center"><input type="radio" name="nsBg" value="black" x-model="nsBg" class="mr-2"> Schwarz</label>
+              <label class="inline-flex items-center"><input type="radio" name="nsBg" value="white" x-model="nsBg" class="mr-2"> Weiß</label>
             </div>
-            <div class="mt-1">
-              <p
-                class="prose prose-sm prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-700 max-w-none"
-              >
-                This may be useful for debugging or to calibrate the print out.
-              </p>
-            </div>
+            <p class="prose prose-sm mt-1">Wenn weiß gewählt, kein Rahmen um das Etikett.</p>
           </div>
-          <div>
+          <div class="md:col-span-2">
             <div class="flex items-start">
               <div class="flex h-5 items-center">
                 <input
@@ -187,70 +125,88 @@
                   class="focus:ring-3 h-4 w-4 rounded border border-gray-300 bg-gray-50 focus:ring-blue-300"
                 />
               </div>
-              <label
-                for="printPrefix"
-                class="ms-2 text-sm font-medium text-gray-900"
-                >Print Prefix</label
-              >
+              <label for="printPrefix" class="ms-2 text-sm font-medium text-gray-900">Print Document Number</label>
             </div>
-            <div class="mt-1">
-              <p
-                class="prose prose-sm prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-700 max-w-none"
-              >
-                Enables printing the prefix as text
-              </p>
-            </div>
+            <p class="prose prose-sm mt-1">Gibt an, ob die Dokumentennummer als Text auf dem Etikett erscheinen soll. Das Präfix "ASN" wird nie als Text gedruckt, ist aber im DataMatrix-Code enthalten.</p>
           </div>
         </div>
-        <button
-          @click.prevent="generateLabels()"
-          class="w-full rounded-lg bg-blue-700 px-5 py-2.5 text-center text-sm font-medium text-white hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 sm:w-auto"
-        >
-          Regenerate Labels
-        </button>
-        <button
-          @click.prevent="printLabels()"
-          class="w-full rounded-lg bg-blue-700 px-5 py-2.5 text-center text-sm font-medium text-white hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 sm:w-auto"
-        >
-          Print Labels
-        </button>
+        <div class="flex gap-3">
+          <button
+            @click.prevent="generateLabels()"
+            class="rounded-lg bg-blue-700 px-5 py-2.5 text-center text-sm font-medium text-white hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300"
+          >
+            Regenerate Labels
+          </button>
+          <button
+            @click.prevent="printLabels()"
+            class="rounded-lg bg-green-700 px-5 py-2.5 text-center text-sm font-medium text-white hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-300"
+          >
+            Print Labels
+          </button>
+        </div>
       </form>
     </div>
 
-    <div
-      class="container mx-auto w-[210mm] border px-[8.45mm] py-[13.5mm] print:w-full print:max-w-full print:border-0"
-    >
-      <!-- Display QR Code Labels -->
-      <ol class="grid grid-cols-10 gap-x-[2.55mm]">
-        <template x-for="label in labels">
-          <li class="h-[10mm] w-[17.8mm]">
-            <div
-              class="flex h-[9mm] w-[16.8mm] items-center border-[0.5mm] odd:border-blue-500 even:border-red-300"
-              :class="{'even:border-transparent odd:border-transparent': !borderToggle}"
-            >
-              <img
-                :src="label.qrCodeUrl"
-                alt=""
-                width="100"
-                height="100"
-                class="mr-[0.5mm] aspect-square h-[9mm] w-[9mm] flex-none"
-                referrerpolicy="no-referrer"
-              />
-              <div
-                class="flex-grow"
-                :class="{
-                'text-[2.9mm]': label.text.length <= 4,
-                'text-[2.2mm]': label.text.length == 5,
-                'text-[1.7mm]': label.text.length == 6,
-                'text-[1.4mm]': label.text.length == 7,
-                'text-[1.1mm]': label.text.length >= 8,
-              }"
-                x-text="label.text"
-              ></div>
+    <style>
+      /* Label size: 13mm x 25mm (hochkant / portrait) */
+      .label-page {
+        width: 13mm;
+        height: 25mm;
+        page-break-after: always;
+        box-sizing: border-box;
+      }
+      .number {
+        padding-top: 0.2mm;
+        box-sizing: border-box;
+        font-family: monospace, ui-monospace, SFMono-Regular;
+        font-size: 4mm;
+        text-align: center;
+        color: #000;
+      }
+      .ns-dark {
+        color: #ffffff;
+        background-color: #000000;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      /* Encourage browsers to actually print background colors */
+      .label-page, .number {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+
+      @media print {
+        @page {
+          margin: 0;
+          size: 13mm 25mm; /* width height in mm (portrait) */
+        }
+        body, html {
+          margin: 0;
+          padding: 0;
+        }
+        /* Make sure background stays black when printing */
+        .ns-dark {
+          background-color: #000000 !important;
+          color: #ffffff !important;
+        }
+      }
+    </style>
+
+    <div id="labels-container" class="mx-auto">
+      <template x-for="label in labels" :key="label.id">
+        <div class="label-page">
+          <!-- Content area: DataMatrix centered and below it a full-width monospace block with Namespace and DocNum -->
+          <div class="flex flex-col items-center justify-center px-[0.8mm] py-[0.8mm] h-[calc(100% - 6mm)]">
+            <canvas :data-canvas-id="label.id" class="block" width="300" height="300" style="width:9mm;height:9mm;margin-bottom:1.2mm;"></canvas>
+            <div class="w-full text-center">
+              <div class="number w-full" x-text="label.namespace"></div>
+              <div class="number w-full" x-text="label.docNum"></div>
             </div>
-          </li>
-        </template>
-      </ol>
+          </div>
+        </div>
+      </template>
     </div>
 
     <footer class="mt-8 bg-gray-200 py-4 text-center print:hidden">
@@ -278,45 +234,94 @@
     <script>
       function qrCodeApp() {
         return {
-          startNumber: 1,
-          prefix: "ASN",
-          leadingZeros: 4,
-          borderToggle: false,
+          namespace: '001',
+          docStart: '001',
+          count: 10,
+          nsBg: 'black',
           printPrefix: true,
           labels: [],
 
           generateLabels() {
+            // Validate inputs
+            if (!/^\d{3}$/.test(this.namespace)) {
+              alert('Namespace muss 3 Ziffern enthalten (z.B. 001)');
+              return;
+            }
+            if (!/^\d{3}$/.test(this.docStart)) {
+              alert('Document Start muss 3 Ziffern enthalten (z.B. 001)');
+              return;
+            }
+
+            const ns = this.namespace;
+            const start = parseInt(this.docStart, 10);
+            const total = parseInt(this.count, 10) || 0;
             this.labels = [];
-            let totalLabels = 10 * 27; // 7 columns x 27 rows
-            let startNumberInt = parseInt(this.startNumber, 10); // Ensure startNumber is an integer
-            let leadingZerosInt = parseInt(this.leadingZeros, 10); // Ensure leadingZeros is an integer
-            for (let i = 0; i < totalLabels; i++) {
-              const number = startNumberInt + i;
-              const paddedNumber = number
-                .toString()
-                .padStart(leadingZerosInt + 1, "0");
-              const tempText = this.printPrefix ? this.prefix + paddedNumber : paddedNumber;
-              const text = function () {
-                  if (tempText.length > 4) {
-                  const divideOn = Math.ceil(tempText.length/2)
-                  return `${tempText.substring(0,divideOn)}\n${tempText.substring(divideOn)}`;
-                } else {
-                  return tempText
-                }
+
+            for (let i = 0; i < total; i++) {
+              const docNum = (start + i).toString().padStart(3, '0');
+              const payload = `ASN${ns}${docNum}`; // DataMatrix payload contains ASN prefix
+              const docNumDisplay = this.printPrefix ? `${docNum}` : '';
+              const id = `lbl-${Date.now()}-${i}`;
+
+              // Determine wrapper style depending on namespace background
+              // Namespace band that spans the entire label width
+              // Styles: fixed monospace font and sizes. Namespace gets background, doc number not.
+              this.labels.push({ id, payload, docNum: docNumDisplay, namespace: ns });
+            }
+
+            // After DOM update, render DataMatrix on each canvas
+            this.$nextTick(() => {
+              if (typeof bwipjs === 'undefined' || !bwipjs.toCanvas) {
+                alert('bwip-js konnte nicht geladen werden. DataMatrix Generierung wird nicht funktionieren.');
+                return;
               }
 
-              const qrCode = this.prefix + paddedNumber;
-              // See https://goqr.me/api/doc/create-qr-code/
-              const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-                qrCode
-              )}`;
+              this.labels.forEach((label) => {
+                const selector = `[data-canvas-id="${label.id}"]`;
+                const canvas = document.querySelector(selector);
+                if (!canvas) return;
 
-              this.labels.push({ qrCodeUrl, text });
-            }
+                // Ensure the canvas is visually the right size
+                canvas.style.width = '9mm';
+                canvas.style.height = '9mm';
+
+                try {
+                  // Render DataMatrix using bwip-js
+                  bwipjs.toCanvas(canvas, {
+                    bcid: 'datamatrix',
+                    text: label.payload,
+                    scale: 4,
+                    padding: 0,
+                    includetext: false,
+                  });
+                } catch (err) {
+                  console.error('bwipjs render error', err);
+                }
+
+                // Apply styles for namespace and doc number (fixed sizes)
+                const nsElQuery = document.querySelector(`[data-canvas-id="${label.id}"]`);
+                // find corresponding text block elements by traversing DOM: canvas -> parent -> text container
+                const canvasEl = document.querySelector(selector);
+                if (canvasEl) {
+                  const textContainer = canvasEl.parentElement.parentElement.querySelector('.w-full');
+                  if (textContainer) {
+                    const nsEl = textContainer.querySelector(':scope > div:nth-child(1)');
+                    if (this.nsBg === 'black') {
+                      nsEl.classList.add('ns-dark');
+                    } else {
+                      nsEl.classList.remove('ns-dark');
+                    }
+
+                  }
+                }
+              });
+            });
           },
+
           printLabels() {
             window.print();
           },
+
           init() {
             this.generateLabels();
           },
